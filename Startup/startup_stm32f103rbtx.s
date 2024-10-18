@@ -62,109 +62,100 @@ Reset_Handler:
   	ldr   	r0, =_estack
   	mov   	sp, r0          /* set stack pointer */
 
+	@ вычисляем адрес для BitBanding 4-го бита регистра RCC_APB2ENR
+	@ включаем тактирование порта C (во 2-й бит RCC_APB2ENR пишем '1`)
+	@ загружаем это значение
 	ldr 	r0, =PERIPH_BB_BASE + \
 				(RCC_APB2ENR-PERIPH_BASE) * 32 + \
 				IOPCEN * 4
-										@ вычисляем адрес для BitBanding 4-го бита регистра RCC_APB2ENR
-	mov		r1, #1						@ включаем тактирование порта A (во 2-й бит RCC_APB2ENR пишем '1`)
-	str 	r1, [r0]					@ загружаем это значение
+										
+	mov		r1, #1						
+	str 	r1, [r0]					
 
-	ldr		r0, =GPIOC_CRH
-	mov		r1, #0b0100
+	@ 1.Load the const address of the GPIOC_CRH to the r0;
+	@ 2. Load the const bit-config for floating input mode to the r1;
+	@ 3. Extract value from the r0 register to the r2 register;
+	@ 4. Insert the first 4 bits of the r1 register to the r2 starts from 12 bit
+	@ 	 for the GPIOC_11;
+	@ 5. Insert the first 4 bits of the r1 register to the r2 starts from 16 bit
+	@    for the GPIOC_12;
+	@ 6. Load value from the r2 buffer register to the r0.
+	ldr		r0, =GPIOC_CRH	
+	mov		r1, #0b0100		
+	ldr		r2, [r0]		
+	bfi 	r2, r1, #12, #4 
+	bfi		r2, r1, #16, #4 
+	str		r2, [r0]		
+
+	@ 1. Load the const address of the GPIOC_CRL to the r0;
+	@ 2. Load the const bit-config for Push-Pull mode (50 MHz) to the r1;
+	@ 3. Extract value from the r0 register to the r2 register;
+	@ 4-10. Insert the first 4 bits of the r1 register to the r2 for the GPIOC_01,
+	@    GPIOC_02, GPIOC_03, GPIOC_04, GPIOC_05, GPIOC_06, GPIOC_07;
+	@ 5. Load value from the r2 buffer register to the r0.
+	ldr		r0, =GPIOC_CRL
+	mov		r1, #0b0011
 	ldr		r2, [r0]
-	bfi		r2, r1, #16, #4
-	bfi 	r2, r1, #12, #4
-	str		r2, [r0]
+    bfi		r2, r1, #0,	 #0x4
+    bfi		r2, r1, #4,  #0x4
+    bfi		r2, r1, #8,  #0x4
+    bfi		r2, r1, #12, #0x4
+    bfi		r2, r1, #16, #0x4
+    bfi		r2, r1, #20, #0x4
+    bfi		r2, r1, #24, #0x4
+    str		r2, [r0]
+
+    ldr		r10, =GPIOC_BSRR @ Load the GPIOC_BSRR address to the r10 register
+	ldr		r11, =GPIOC_BRR	 @ Load the GPIOC_BRR address to the r10 register
+
+	@ Load cosnt 0 to the r3 common register that 
+	@ works in the application all the time.
+	@ Should not change anywhere else
 	mov		r3, #0
 
-	ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0b0011					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #0, #4    			@ скопировать биты маски в позицию PIN0
-    bfi		r2, r1, #4, #4    			@ скопировать биты маски в позицию PIN0
-    bfi		r2, r1, #8, #4    			@ скопировать биты маски в позицию PIN0
-    bfi		r2, r1, #12, #4    			@ скопировать биты маски в позицию PIN0
-    bfi		r2, r1, #16, #4    			@ скопировать биты маски в позицию PIN0
-    bfi		r2, r1, #20, #4    			@ скопировать биты маски в позицию PIN0
-    bfi		r2, r1, #24, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
+loop:	@ Super loop
 
-/*
-    ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0x03					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #4, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
+	@ Load memory address of the
+	@ 'GPIOC IDR register' to the 
+	@ r8 common register.
+	ldr		r8, =GPIOC_IDR 	
 
-    ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0x03					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #8, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
-
-    ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0x03					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #12, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
-
-    ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0x03					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #16, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
-
-    ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0x03					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #20, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
-
-    ldr		r0, =GPIOC_CRL				@ адрес порта
-	mov		r1, #0x03					@ 4-битная маска настроек для Output mode 50mHz, Push-Pull ("0011")
-	ldr		r2, [r0]					@ считать порт
-    bfi		r2, r1, #24, #4    			@ скопировать биты маски в позицию PIN0
-    str		r2, [r0]					@ загрузить результат в регистр настройки порта
-*/
-
-    ldr		r0, =GPIOC_BSRR				@ адрес порта выходных сигналов
-
-	mov 	r3, #-1
-
-loop:									@ Бесконечный цикл
-
-	ldr		r8, =GPIOC_IDR
+	@ Extract value to the r9 
+	@ common register by address 
+	@ that is contained in the r8.
 	ldr 	r9, [r8]
 
-	@ Check PC12
-	tst 	r9, 0b0001000000000000
+	@ The r9 common register contains value of the IDR  
+	@ register of the PORTC at this point. 
+	@ Then check a corresponding bit that matches 
+	@ with UP/DOWN buttons.
+
+	@ Check PC12 (UP button is pressed)
+	tst 	r9, GPIO_IDR_IDR12
 	it 		EQ
 	addeq 	r3, r3, #1
 
-	@ Check PC11
-	tst 	r9, 0b0000100000000000
+	@ Check PC11 (DOWN button is pressed)
+	tst 	r9, GPIO_IDR_IDR11
 	it 		EQ
 	subeq 	r3, #1
 
+	@ High value constraint by the task condition
+	cmp 	r3, #9	@ Compare with 9
+	it 		GE		@ Greater or Equal 
+	movge 	r3, #9	@ Load 9
 
-	@ High value constraint
-	cmp 	r3, #9
-	it 		GE
-	movge 	r3, #9
+	@ Low value constraint by the task condition
+	cmp 	r3, #0	@ Compare with 0
+	it 		LE		@ Less or Equal
+	movle 	r3, #0	@ Load 0
 
-	@ Low value constraint
-	cmp 	r3, #0
-	it 		LE
-	movle 	r3, #0
-
-	bl 		delay
-
-	b		switch
-
-	b 		loop						@ возвращаемся к началу цикла
+	bl 		delay	@ Button rattling protection (loop idle)
+	b		switch	@ Redraw display data
+	b 		loop	@ Back to the begin of the loop
 
 switch:
-	cmp 	r3, #0
+	cmp		r3, #0
 	beq 	case_0
 
 	cmp 	r3, #1
@@ -197,114 +188,64 @@ switch:
 	b		loop
 
 case_0:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0x3f
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov 	r10, #0x3F 
 	b 		loop
 
 case_1:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0x06
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x06
 	b 		loop
 
 case_2:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0x5B
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x5B
 	b 		loop
 
 case_3:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0x4F
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x4F
 	b 		loop
 
 case_4:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0x66
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x66
 	b 		loop
 
 case_5:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0x6D
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x6D
 	b 		loop
 
 case_6:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0b01111101
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x7D
 	b 		loop
 
 case_7:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0b00000111
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x07
 	b 		loop
 
 case_8:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0b01111111
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x7F
 	b 		loop
 
 case_9:
-	mov		r1, #0xFF
-	mov		r1, r1, LSL #16
-	str		r1, [r0]
-
-	mov		r1, #0b01101111
-	str		r1, [r0]
-
+	mov		r11, #0xFF
+	mov		r10, #0x6F
 	b 		loop
 
-delay:									@ Подпрограмма задержки
-	push	{r0}						@ Загружаем в стек R0, т.к. его значение будем менять
-	ldr		r0, =0x927C0				@ псевдоинструкция Thumb (загрузить константу в регистр)
+delay:					@ Подпрограмма задержки
+	push	{r0}		@ Загружаем в стек R0, т.к. его значение будем менять
+	ldr		r0, =500000	@ псевдоинструкция Thumb (загрузить константу в регистр)
 delay_loop:
-	subs	r0, #1						@ SUB с установкой флагов результата
-	it 		NE
-	bne		delay_loop					@ переход, если Z==0 (результат вычитания не равен нулю)
-	pop		{r0}						@ Выгружаем из стека R0
-	bx		lr							@ выход из подпрограммы (переход к адресу в регистре LR - вершина стека)
+	subs	r0, #1		@ SUB с установкой флагов результата
+	it 		NE			@ Not Equal
+	bne		delay_loop	@ переход, если Z==0 (результат вычитания не равен нулю)
+	pop		{r0}		@ Выгружаем из стека R0
+	bx		lr			@ выход из подпрограммы (переход к адресу в регистре LR - вершина стека)
 
   .size Reset_Handler, .-Reset_Handler
 
