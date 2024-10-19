@@ -105,13 +105,20 @@ Reset_Handler:
     bfi		r2, r1, #24, #0x4
     str		r2, [r0]
 
-    ldr		r10, =GPIOC_BSRR @ Load the GPIOC_BSRR address to the r10 register
-	ldr		r11, =GPIOC_BRR	 @ Load the GPIOC_BRR address to the r10 register
-
-	@ Load cosnt 0 to the r3 common register that 
+	@ Load const 0 to the r3 common register that 
 	@ works in the application all the time.
-	@ Should not change anywhere else
+	@ Should not change anywhere else.
 	mov		r3, #0
+
+	@ Load 0xFF value to the r7 common register.
+	@ This register is used to store his value in GPIOC_BRR 
+	@ register for cleaning 7-digit bits before 
+	@ drawing new value.
+	@ Should not change anywhere else.
+	mov 	r7, #0xFF
+
+    ldr		r10, =GPIOC_BSRR @ Load the const GPIOC_BSRR address to the r10 register
+	ldr		r11, =GPIOC_BRR	 @ Load the const GPIOC_BRR address to the r11 register
 
 loop:	@ Super loop
 
@@ -188,53 +195,63 @@ switch:
 	b		loop
 
 case_0:
-	mov		r11, #0xFF
-	mov 	r10, #0x3F 
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov 	r6, #0x3F 	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_1:
-	mov		r11, #0xFF
-	mov		r10, #0x06
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x06	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_2:
-	mov		r11, #0xFF
-	mov		r10, #0x5B
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x5B	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_3:
-	mov		r11, #0xFF
-	mov		r10, #0x4F
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x4F	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_4:
-	mov		r11, #0xFF
-	mov		r10, #0x66
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x66	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_5:
-	mov		r11, #0xFF
-	mov		r10, #0x6D
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x6D	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_6:
-	mov		r11, #0xFF
-	mov		r10, #0x7D
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x7D	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_7:
-	mov		r11, #0xFF
-	mov		r10, #0x07
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x07	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_8:
-	mov		r11, #0xFF
-	mov		r10, #0x7F
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x7F	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 case_9:
-	mov		r11, #0xFF
-	mov		r10, #0x6F
+	str		r7, [r11] 	@ Reset 7-digit bits using the GPIOC_BRR register
+	mov		r6, #0x6F	@ Load value to the r6 common register
+	str		r6, [r10]	@ Set corresponding to "0" bits to the GPIOC_BSRR
 	b 		loop
 
 delay:					@ Подпрограмма задержки
